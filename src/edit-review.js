@@ -1015,7 +1015,7 @@ class EditReview {
         if (changes.length > 1) {
             const selected = await vscode.window.showQuickPick(
                 changes.map((hunk, index) => ({
-                    label: `${index + 1}: ${hunk.removedTexts[0] ?? '(insertion)'} \u2192 ${hunk.addedTexts[0] ?? '(deletion)'}`,
+                    label: `${index + 1}: ${hunk.removedTexts[0] ?? vscode.l10n.t('(insertion)')} \u2192 ${hunk.addedTexts[0] ?? vscode.l10n.t('(deletion)')}`,
                     hunk,
                 })),
                 { title: vscode.l10n.t('Choose the individual line change') },
@@ -1360,8 +1360,8 @@ class ReviewBarProvider {
         const result = [
             lens('$(chevron-up)', PREV_CMD, [path]),
             lens('$(chevron-down)', NEXT_CMD, [path]),
-            lens(`$(check-all) ${vscode.l10n.t('Keep')} file`, KEEP_CMD, [path, this.owner.fileHint(entry)]),
-            lens(`$(undo) ${vscode.l10n.t('Undo')} file`, UNDO_CMD, [path, this.owner.fileHint(entry)]),
+            lens(`$(check-all) ${vscode.l10n.t('Keep file')}`, KEEP_CMD, [path, this.owner.fileHint(entry)]),
+            lens(`$(undo) ${vscode.l10n.t('Undo file')}`, UNDO_CMD, [path, this.owner.fileHint(entry)]),
             lens(`$(compare) ${vscode.l10n.t('Compare with original')}`, DIFF_CMD, [path]),
         ];
         if (hunks.length > MAX_DECORATED_HUNKS) {
