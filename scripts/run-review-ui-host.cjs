@@ -38,9 +38,6 @@ fs.writeFileSync(path.join(workspace, '.vscode/settings.json'), JSON.stringify({
     'window.title': 'DSH Review UI Test',
     'workbench.colorTheme': 'Default Dark+',
     'telemetry.telemetryLevel': 'off',
-    'update.mode': 'none',
-    'extensions.autoCheckUpdates': false,
-    'extensions.autoUpdate': false,
 }));
 const args = [
     workspace,

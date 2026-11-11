@@ -91,6 +91,9 @@ async function run() {
             await vscode.commands.executeCommand('notifications.clearAll');
             for (const [theme, label] of [['Default Dark+', 'inline-dark'], ['Default Light+', 'inline-light'], ['Default High Contrast', 'inline-contrast']]) {
                 await setTheme(theme);
+                // Give VS Code one beat to repaint the CodeLens row after the
+                // theme switch before the observer captures the phase.
+                await sleep(500);
                 write(label);
                 await wait();
             }
