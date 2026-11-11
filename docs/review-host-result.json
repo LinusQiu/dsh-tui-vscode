@@ -1,12 +1,12 @@
 {
   "feature": "edit-review presentation layer (PR-2 of the #46 split)",
-  "capturedAt": "2026-11-11T09:25:00Z",
+  "capturedAt": "2026-11-11T09:32:00Z",
   "harness": {
     "vscode": "1.145.3",
     "node": "v25.8.0 (host runner; CI's extension host uses its own embedded Node)",
-    "head": "2d57f4d46a42ac2cebb304d85539219ac1bdd5cf",
+    "head": "3ab879557b2a58df6800bba747c933afcb0a190c",
     "workingTree": "clean",
-    "outBuiltAt": "2026-11-11T09:12:04.565Z",
+    "outBuiltAt": "2026-11-11T09:19:20.925Z",
     "commands": [
       "DSH_REVIEW_ARTIFACT_ROOT=<isolated dir> VSCODE_EXECUTABLE=<Code.exe> node scripts/run-review-host.cjs",
       "DSH_REVIEW_ARTIFACT_ROOT=<isolated dir> VSCODE_EXECUTABLE=<Code.exe> DSH_REVIEW_VISUAL_HANDSHAKE=1 node scripts/run-review-ui-host.cjs"
@@ -88,8 +88,8 @@
     "note": "Simulated CI on the fork PR (upstream CI needs a maintainer approval to run).",
     "repository": "LinusQiu/dsh-tui-vscode",
     "pullRequest": 3,
-    "run": 42993217157,
-    "url": "https://github.com/LinusQiu/dsh-tui-vscode/actions/runs/42993217157",
+    "run": 42994281080,
+    "url": "https://github.com/LinusQiu/dsh-tui-vscode/actions/runs/42994281080",
     "result": "success",
     "checks": [
       "test (ubuntu-latest, 22)",
