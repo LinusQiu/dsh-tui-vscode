@@ -1,0 +1,107 @@
+{
+  "feature": "edit-review presentation layer (PR-2 of the #46 split)",
+  "capturedAt": "2026-11-11T11:50:00Z",
+  "harness": {
+    "vscode": "1.145.3",
+    "node": "v25.8.0 (host runner; CI's extension host uses its own embedded Node)",
+    "head": "246bfd249d8b21cc6918f29eb431f636bebaa8af",
+    "workingTree": "clean",
+    "outBuiltAt": "2026-11-11T11:38:14.410Z",
+    "commands": [
+      "DSH_REVIEW_ARTIFACT_ROOT=<isolated dir> VSCODE_EXECUTABLE=<Code.exe> node scripts/run-review-host.cjs",
+      "DSH_REVIEW_ARTIFACT_ROOT=<isolated dir> VSCODE_EXECUTABLE=<Code.exe> DSH_REVIEW_VISUAL_HANDSHAKE=1 node scripts/run-review-ui-host.cjs"
+    ]
+  },
+  "functionalHost": {
+    "status": "passed",
+    "phase": "complete",
+    "checks": [
+      "ordinary create/change never mints a pending review",
+      "no auto diff; CodeLens bar + per-block Keep/Undo with counts",
+      "per-hunk Keep rebases the baseline without writing",
+      "whole-file Keep accepts; later verified change can be undone exactly",
+      "removed blocks are one marker; Undo restores the exact multi-line text",
+      "keeping a deletion accepts it without writing",
+      "hover command arguments stay pinned to the reviewed entry",
+      "created file Keep, BOM Undo refusal, deleted-file restore",
+      "awaited flush persists the pending review and its provenance"
+    ]
+  },
+  "visualHost": {
+    "status": "passed",
+    "phases": [
+      "inline-dark",
+      "inline-light",
+      "inline-contrast",
+      "sidebar-dark",
+      "paused-light",
+      "compare-dark",
+      "click-keep-first",
+      "click-undo-second",
+      "complete"
+    ],
+    "checks": [
+      "inline phases captured for all three themes",
+      "sidebar phase captured",
+      "paused phase captured",
+      "manual compare phase captured",
+      "real CodeLens clicks performed Keep then Undo"
+    ],
+    "pausedBar": [
+      "Review paused: overlapping or later edits · Compare original",
+      "$(check) Keep (accept current file)"
+    ],
+    "screenshots": [
+      "inline-dark.png",
+      "inline-light.png",
+      "inline-contrast.png",
+      "sidebar-dark.png",
+      "paused-light.png",
+      "compare-dark.png"
+    ]
+  },
+  "localSuites": {
+    "typecheck": "npm run typecheck — exit 0",
+    "unit": {
+      "command": "npm test",
+      "tests": 369,
+      "passed": 366,
+      "skipped": 3,
+      "failed": 0
+    },
+    "e2e": {
+      "command": "npm run test:e2e",
+      "exitCode": 0,
+      "note": "last local run exit 0; the fork CI e2e job covers the final head"
+    },
+    "package": {
+      "command": "npm run package",
+      "file": "dsh-tui-vscode-0.7.7.vsix",
+      "files": 147,
+      "size": "1.24 MB",
+      "hostTestEntriesExcluded": true,
+      "l10nBundlesPresent": true
+    }
+  },
+  "notCommitted": "The phase screenshots stay out of the repository by design; the visual host command above regenerates them next to its run metadata (HEAD, working-tree state, out/ build time).",
+  "forkCi": {
+    "note": "Simulated CI on the fork PR (upstream CI needs a maintainer approval to run). The e2e job failed once on the known Ctrl+C poll flake and passed on rerun; the run conclusion is success.",
+    "repository": "LinusQiu/dsh-tui-vscode",
+    "pullRequest": 3,
+    "run": 43013652709,
+    "url": "https://github.com/LinusQiu/dsh-tui-vscode/actions/runs/43013652709",
+    "result": "success",
+    "checks": [
+      "test (ubuntu-latest, 22)",
+      "test (ubuntu-latest, 24)",
+      "test (windows-latest, 22)",
+      "test (windows-latest, 24)",
+      "e2e",
+      "quality",
+      "pr-policy",
+      "release-consistency",
+      "security-scan",
+      "docs-links"
+    ]
+  }
+}

@@ -10,6 +10,8 @@
 npm-cache/**
 out/test/**
 out-test/**
+out/review-host-test.js
+out/review-ui-host-test.js
 src/**
 tsconfig.json
 tsconfig.test.json

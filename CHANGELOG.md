@@ -14,9 +14,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Added
 
+- **AI edit review, presentation layer (PR-2 of the #46 split).** Recorded AI file changes appear in the editor as dark-green additions, light-green rewritten lines with darker changed elements, and a dark-red block marker where lines were deleted. The **AI Edits** view, the status-bar counter, the hover links, the editor-title buttons and the command palette carry per-block and whole-file Keep / Undo. No comparison tab opens by itself; the diff view is one click away. `dsh-tui-vscode.editReview.enabled` defaults to `false` until the attribution layer lands; `exclude` and `diffView` are the other two settings. Custody and the exact-text decisions stay in the data layer; see `docs/edit-review.md`.
+
 ### Changed
 
+- **The inline red strikethrough of removed text is gone.** Removed text used to be painted inside the rewritten line, so old and new text shared one line; a deletion is now one block marker with a hover preview, and the full old text lives in the on-demand comparison.
+- **The comparison view no longer opens automatically.** The `editReview.autoShowDiff` setting is removed; the diff (inline red/green rows by default) is a deliberate action from the command palette, the sidebar or the hover.
+
 ### Fixed
+
+- **`editReview.enabled = false` now really disables the feature**: the constructor no longer warms the workspace (up to 5000 files / 48 MB of text) and the Keep / Undo commands return early.
+- **Keeping a deleted file works while its stale editor tab is still open** (Keep writes nothing, so a stale buffer must not block accepting the deletion).
+- **Undoing a newly created file reports what actually happened** ("removed the newly created file") instead of claiming the pre-edit original was restored.
 
 ## [0.7.7] - 2026-11-09
 
