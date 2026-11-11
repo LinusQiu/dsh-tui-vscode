@@ -1,12 +1,12 @@
 {
   "feature": "edit-review presentation layer (PR-2 of the #46 split)",
-  "capturedAt": "2026-11-11T09:32:00Z",
+  "capturedAt": "2026-11-11T11:50:00Z",
   "harness": {
     "vscode": "1.145.3",
     "node": "v25.8.0 (host runner; CI's extension host uses its own embedded Node)",
-    "head": "3ab879557b2a58df6800bba747c933afcb0a190c",
+    "head": "246bfd249d8b21cc6918f29eb431f636bebaa8af",
     "workingTree": "clean",
-    "outBuiltAt": "2026-11-11T09:19:20.925Z",
+    "outBuiltAt": "2026-11-11T11:38:14.410Z",
     "commands": [
       "DSH_REVIEW_ARTIFACT_ROOT=<isolated dir> VSCODE_EXECUTABLE=<Code.exe> node scripts/run-review-host.cjs",
       "DSH_REVIEW_ARTIFACT_ROOT=<isolated dir> VSCODE_EXECUTABLE=<Code.exe> DSH_REVIEW_VISUAL_HANDSHAKE=1 node scripts/run-review-ui-host.cjs"
@@ -64,8 +64,8 @@
     "typecheck": "npm run typecheck — exit 0",
     "unit": {
       "command": "npm test",
-      "tests": 367,
-      "passed": 364,
+      "tests": 369,
+      "passed": 366,
       "skipped": 3,
       "failed": 0
     },
@@ -85,11 +85,11 @@
   },
   "notCommitted": "The phase screenshots stay out of the repository by design; the visual host command above regenerates them next to its run metadata (HEAD, working-tree state, out/ build time).",
   "forkCi": {
-    "note": "Simulated CI on the fork PR (upstream CI needs a maintainer approval to run).",
+    "note": "Simulated CI on the fork PR (upstream CI needs a maintainer approval to run). The e2e job failed once on the known Ctrl+C poll flake and passed on rerun; the run conclusion is success.",
     "repository": "LinusQiu/dsh-tui-vscode",
     "pullRequest": 3,
-    "run": 42994281080,
-    "url": "https://github.com/LinusQiu/dsh-tui-vscode/actions/runs/42994281080",
+    "run": 43013652709,
+    "url": "https://github.com/LinusQiu/dsh-tui-vscode/actions/runs/43013652709",
     "result": "success",
     "checks": [
       "test (ubuntu-latest, 22)",
