@@ -62,8 +62,17 @@
   },
   "localSuites": {
     "typecheck": "npm run typecheck — exit 0",
-    "unit": { "command": "npm test", "tests": 366, "passed": 363, "skipped": 3, "failed": 0 },
-    "e2e": { "command": "npm run test:e2e", "exitCode": 0 },
+    "unit": {
+      "command": "npm test",
+      "tests": 366,
+      "passed": 363,
+      "skipped": 3,
+      "failed": 0
+    },
+    "e2e": {
+      "command": "npm run test:e2e",
+      "exitCode": 0
+    },
     "package": {
       "command": "npm run package",
       "file": "dsh-tui-vscode-0.7.7.vsix",
@@ -73,5 +82,25 @@
       "l10nBundlesPresent": true
     }
   },
-  "notCommitted": "The phase screenshots stay out of the repository by design; the visual host command above regenerates them next to its run metadata (HEAD, working-tree state, out/ build time)."
+  "notCommitted": "The phase screenshots stay out of the repository by design; the visual host command above regenerates them next to its run metadata (HEAD, working-tree state, out/ build time).",
+  "forkCi": {
+    "note": "Simulated CI on the fork PR (upstream CI needs a maintainer approval to run).",
+    "repository": "LinusQiu/dsh-tui-vscode",
+    "pullRequest": 3,
+    "run": 42992331715,
+    "url": "https://github.com/LinusQiu/dsh-tui-vscode/actions/runs/42992331715",
+    "result": "success",
+    "checks": [
+      "test (ubuntu-latest, 22)",
+      "test (ubuntu-latest, 24)",
+      "test (windows-latest, 22)",
+      "test (windows-latest, 24)",
+      "e2e",
+      "quality",
+      "pr-policy",
+      "release-consistency",
+      "security-scan",
+      "docs-links"
+    ]
+  }
 }
