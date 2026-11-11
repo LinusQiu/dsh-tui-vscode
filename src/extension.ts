@@ -39,6 +39,8 @@ import {
   shouldBroadcastSelection,
 } from './auto-mention'
 import { IdeServer, selectionFingerprint, selectionLineRange, type SelectionBroadcast } from './ide/server'
+import { EditReview } from './edit-review'
+import { EditLedgerStore } from './edit-ledger-store'
 
 const TERMINAL_NAME = 'DeepSeek'
 
@@ -101,6 +103,14 @@ export interface ExtensionApi {
    * retry this window promised (Sourcery ⑥).
    */
   seedImageSetupPrompted(shown: boolean): Thenable<void>
+  /**
+   * E2E seam (test-only): the presentation layer of the PR #46 split.
+   *
+   * The attribution layer is a later PR, so the isolated extension-host suites
+   * need a way to record an already-verified change and to read the same ledger
+   * the UI reads. Never used by production code.
+   */
+  getEditReviewTestBridge(): unknown
 }
 
 export function activate(context: vscode.ExtensionContext): ExtensionApi {
@@ -132,6 +142,16 @@ export function activate(context: vscode.ExtensionContext): ExtensionApi {
 
   const status = new SessionStatusBar()
   context.subscriptions.push(status)
+
+  // ---- AI edit review: presentation layer of the PR #46 split ------------
+  // The pending-edit ledger (data layer, PR-1) is created once per window and
+  // shared with the presentation layer. Attribution is a later PR: nothing in
+  // this window records entries by itself, so `editReview.enabled` defaults to
+  // false and the view stays empty until a producer exists (or a test bridge
+  // injects one).
+  const editReviewStore = new EditLedgerStore()
+  const editReview = new EditReview(context, { store: editReviewStore, terminalName: TERMINAL_NAME })
+  context.subscriptions.push(editReview)
 
   // The sidebar (activity bar) hosts the SESSION LIST, shaped like the
   // official Claude Code sessions sidebar. The session itself runs in a REAL
@@ -269,7 +289,7 @@ export function activate(context: vscode.ExtensionContext): ExtensionApi {
       kind === 'panel'
         ? vscode.TerminalLocation.Panel
         : { viewColumn: kind === 'active' ? vscode.ViewColumn.Active : vscode.ViewColumn.Beside }
-    return vscode.window.createTerminal({
+    const terminal = vscode.window.createTerminal({
       name: TERMINAL_NAME,
       cwd,
       env,
@@ -277,6 +297,10 @@ export function activate(context: vscode.ExtensionContext): ExtensionApi {
       location,
       isTransient: true,
     })
+    // Let the review layer know this terminal is one of ours: it uses that fact
+    // only to decide when the bounded filesystem poll is worth running.
+    editReview.trackTerminal(terminal)
+    return terminal
   }
 
   /** Wait until the shell is ready to accept input (shell integration or a
@@ -540,6 +564,10 @@ export function activate(context: vscode.ExtensionContext): ExtensionApi {
     // launch branches below share this single wait.
     await ideServerStartup
     const cfg = readSettings()
+    // Refresh the review baselines just before a session starts, never after an
+    // observed write. The call is a no-op while the feature is disabled (its
+    // ready promise is already resolved then).
+    await editReview.prepareSession()
     // DESIGN D5: offer the terminal-images setup on session start, and never
     // let that side quest affect the launch itself. The offer comes from the
     // window-start capability snapshot, so a write this window has not reloaded
@@ -1032,6 +1060,7 @@ export function activate(context: vscode.ExtensionContext): ExtensionApi {
       if (terminal) terminal.sendText(text, false)
     },
     hasTerminal: () => hasTerminal(),
+    getEditReviewTestBridge: () => editReview.testBridge(),
     // `await`ed rather than fire-and-forget: the caller is the e2e suite, and a
     // rejected write there must fail the case instead of passing it vacuously
     // (the same "no unhandled rejection" rule the F-9 guard enforces).

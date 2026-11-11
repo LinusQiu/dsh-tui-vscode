@@ -81,6 +81,7 @@ npm run install:local
 - **A session sidebar that knows your workspace** — titles, relative times, and one click to resume; hover to archive or rename, right-click to delete permanently.
 - **Your selection, without copy-paste** — select code and it reaches the running TUI over the IDE selection channel, or press `Ctrl+Alt+K` to insert an explicit `@relative/path#L12-14` reference.
 - **Start, resume, stop** — resume the last session or any session from the sidebar, and close a tab to end just that one.
+- **Review recorded AI file edits in place** — the **AI Edits** view lists pending files, and the editor itself shows the change: pure additions washed dark green, rewritten lines light green, changed elements darker green, and a deletion block marked in red where its lines used to be. Keep or Undo per block (CodeLens above the block, the sidebar buttons, the status bar counter or the hover) or per file. No comparison tab opens on its own; [the diff view](docs/edit-review.md) is one click away for the full old text. Off by default until the attribution source ships — see [edit review](docs/edit-review.md).
 
 ## Compatibility
 
@@ -123,6 +124,11 @@ Command Palette entries are grouped under **`dsh-tui`**. Titles follow your VS C
 | `dsh-tui: Rename session` / `Archive session` / `Delete session permanently` | Session sidebar actions |
 | `dsh-tui: Manage archived sessions` | Restores or permanently deletes archived sessions |
 | `dsh-tui: Refresh sessions` | Re-reads the session list |
+| `dsh-tui: Keep AI edit` / `Undo AI edit` | Accept or restore the block under the cursor (also the editor-title and sidebar buttons) |
+| `dsh-tui: Keep all AI edits` / `Undo all AI edits` | Decide every pending file at once |
+| `dsh-tui: Compare with original` | Opens the comparison view for the pending file — never automatically |
+| `dsh-tui: Next pending edit` / `Previous pending edit` | Move between blocks of the active file |
+| `dsh-tui: Keep current line change` / `Undo current line change` | Decide the line change at the cursor, from the editor context menu |
 
 **Inserting a reference.** With editor focus, press `Ctrl+Alt+K` (`Cmd+Alt+K` on macOS) or use the editor context menu. You get `@relative/path#L12` for one line, `@relative/path#L12-14` for a range, and a bare relative path when nothing is selected; paths outside the workspace fall back to absolute ones. With no session terminal to type into, the reference goes to your clipboard instead; a session terminal that outlives dsh-tui still receives it. dsh-TUI slices the attachment to the line range at submit time rather than reading the whole file.
 
@@ -139,6 +145,9 @@ Command Palette entries are grouped under **`dsh-tui`**. Titles follow your VS C
 | `dsh-tui-vscode.editorCommand` | `code -w` | The value exported as `$VISUAL` |
 | `dsh-tui-vscode.dshHome` | `""` | Override `$DSH_HOME` for sessions (empty inherits it) |
 | `dsh-tui-vscode.autoInsertMention` | `true` | Push the editor selection to the running TUI (300 ms debounce) |
+| `dsh-tui-vscode.editReview.enabled` | `false` | Show recorded AI file changes with Keep / Undo (the single gate; off until the attribution source ships) |
+| `dsh-tui-vscode.editReview.exclude` | `["**/node_modules/**", …]` | Globs that are never reviewed or captured |
+| `dsh-tui-vscode.editReview.diffView` | `inline` | Layout of the on-demand comparison: `inline` (stacked red/green rows), `sideBySide`, `auto` |
 
 Sessions get more than these: `DSH_TUI_IMAGE_PROTOCOL` unless `imageProtocol` is `auto` (which removes it), `DSH_TUI_IDE_PORT` and `DSH_TUI_IDE_TOKEN` while the selection channel is up, and `DSH_TUI_RESUME_SESSION` (plus `DSH_CC_RESUME_SESSION`) when resuming a specific session.
 

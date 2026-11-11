@@ -30,7 +30,14 @@ dsh-tui-vscode/
 │   ├── auto-mention.ts      # Selection-push decisions
 │   ├── status.ts            # Status-bar item
 │   ├── ide/server.ts        # Loopback IDE selection-channel server
-│   ├── test/                # node:test unit tests (session, sessions, at-mention, auto-mention, ide-server, session-watchers, relative-time, edit-review-core, precise-review-core, edit-ledger-store, safe-path, review-text)
+│   ├── edit-ledger-store.js # Data layer: pending-edit custody, text contract and decision rules
+│   ├── safe-path.js         # Data layer: workspace-bound path policy for review writes
+│   ├── review-text.js       # Data layer: the exact-text contract of review images
+│   ├── edit-review-core.js  # Data layer: diff/alignment primitives and the pending ledger model
+│   ├── precise-review-core.js # Data layer: exact-change planning and user-edit rebasing
+│   ├── edit-review-display.js # Pure display planning: line/element coordinates and block anchors
+│   ├── edit-review.js       # Presentation: in-editor marks, CodeLens, AI Edits view, Keep/Undo
+│   ├── test/                # node:test unit tests (session, sessions, at-mention, auto-mention, ide-server, session-watchers, relative-time, edit-review-core, precise-review-core, edit-ledger-store, safe-path, review-text, edit-review-display, edit-review-integration, edit-review-regressions, review-safety)
 │   └── test-suite/          # Real extension-host e2e (@vscode/test-electron)
 ├── media/                   # Icons and README imagery (packaged into the vsix)
 ├── l10n/                    # Runtime strings for vscode.l10n

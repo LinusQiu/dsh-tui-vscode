@@ -117,6 +117,7 @@ jobs:
                    ('docs/terminal-images.md','docs/terminal-images_ZH.md'),
                    ('docs/session-history.md','docs/session-history_ZH.md'),
                    ('docs/ide-selection-channel.md','docs/ide-selection-channel_ZH.md'),
+                   ('docs/edit-review.md','docs/edit-review_ZH.md'),
                    ('docs/adapters/dsh-tui-vscode-v0.15.md','docs/adapters/dsh-tui-vscode-v0.15_ZH.md')]
           for en, zh in pairs:
               if not os.path.isfile(en) or not os.path.isfile(zh):

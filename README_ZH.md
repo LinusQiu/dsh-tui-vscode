@@ -81,6 +81,7 @@ npm run install:local
 - **懂你工作区的会话侧边栏** —— 标题、相对时间、点击即恢复；悬停可归档或重命名，右键可永久删除。
 - **选区免复制粘贴** —— 选中代码即经 IDE 选区通道送达运行中的 TUI，或按 `Ctrl+Alt+K` 显式插入 `@相对路径#L12-14` 引用。
 - **启动、恢复、终止** —— 恢复上次会话或侧边栏里的任意会话；关掉标签页只结束那一个。
+- **原地审阅被记录的 AI 文件改动** —— **AI 改动待审**视图列出待处理文件，编辑器本体直接显示改动：纯新增行深绿、改写行浅绿、改动处深绿，被删除的段落在其原位置以红色块标记。可按块（块上方 CodeLens、侧栏按钮、状态栏计数或悬停）或按文件执行 Keep / Undo。对比视图**不会自动弹出**；需要完整旧文时一点即开，见[编辑审阅](docs/edit-review_ZH.md)。归因数据源合入前默认关闭。
 
 ## 兼容性
 
@@ -123,6 +124,11 @@ npm run install:local
 | `dsh-tui: 重命名会话` / `归档会话` / `永久删除会话` | 会话侧边栏动作 |
 | `dsh-tui: 管理已归档会话` | 恢复或永久删除已归档会话 |
 | `dsh-tui: 刷新会话列表` | 重新读取会话列表 |
+| `dsh-tui: 保留 AI 改动` / `撤销 AI 改动` | 接受或恢复光标所在块（编辑器标签栏与侧栏按钮同效） |
+| `dsh-tui: 保留全部 AI 改动` / `撤销全部 AI 改动` | 一次性处理所有待审文件 |
+| `dsh-tui: 对比原稿` | 打开待审文件的对比视图——**从不自动打开** |
+| `dsh-tui: 下一处待审改动` / `上一处待审改动` | 在当前文件的块之间移动 |
+| `dsh-tui: 保留当前行改动` / `撤销当前行改动` | 处理光标所在行的改动（编辑器右键菜单） |
 
 **插入引用。** 编辑器聚焦时按 `Ctrl+Alt+K`（macOS 为 `Cmd+Alt+K`），或用编辑器右键菜单。单行得到 `@相对路径#L12`，选区得到 `@相对路径#L12-14`，未选中则是裸相对路径；工作区之外的路径回退为绝对路径。没有可键入的会话终端时，引用改为进入剪贴板；而比 dsh-tui 活得更久的会话终端仍会收到它。dsh-TUI 在提交时按行区间切片附加内容，而不是把整个文件读进去。
 
@@ -139,6 +145,9 @@ npm run install:local
 | `dsh-tui-vscode.editorCommand` | `code -w` | 导出为 `$VISUAL` 的值 |
 | `dsh-tui-vscode.dshHome` | `""` | 为会话覆盖 `$DSH_HOME`（空 = 继承） |
 | `dsh-tui-vscode.autoInsertMention` | `true` | 把编辑器选区推送给运行中的 TUI（300ms 防抖） |
+| `dsh-tui-vscode.editReview.enabled` | `false` | 显示被记录的 AI 文件改动并支持 Keep / Undo（唯一总闸门；归因数据源合入前关闭） |
+| `dsh-tui-vscode.editReview.exclude` | `["**/node_modules/**", …]` | 永不参与审阅、也不保存原稿的 glob |
+| `dsh-tui-vscode.editReview.diffView` | `inline` | 手动对比视图的布局：`inline`（上下叠放红/绿行）、`sideBySide`、`auto` |
 
 会话拿到的环境变量不止这些：`DSH_TUI_IMAGE_PROTOCOL`（除非 `imageProtocol` 为 `auto`——那会移除它），选区通道可用时还有 `DSH_TUI_IDE_PORT` 与 `DSH_TUI_IDE_TOKEN`，恢复指定会话时还有 `DSH_TUI_RESUME_SESSION`（以及 `DSH_CC_RESUME_SESSION`）。
 

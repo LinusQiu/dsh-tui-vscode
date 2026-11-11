@@ -30,7 +30,14 @@ dsh-tui-vscode/
 │   ├── auto-mention.ts      # 选区推送决策
 │   ├── status.ts            # 状态栏项
 │   ├── ide/server.ts        # 回环 IDE 选区通道服务端
-│   ├── test/                # node:test 单测（session、sessions、at-mention、auto-mention、ide-server、session-watchers、relative-time、edit-review-core、precise-review-core、edit-ledger-store、safe-path、review-text）
+│   ├── edit-ledger-store.js # 数据层：待审清单保管、文本契约与决策规则
+│   ├── safe-path.js         # 数据层：审阅写盘的 workspace 路径策略
+│   ├── review-text.js       # 数据层：审阅图像的精确文本契约
+│   ├── edit-review-core.js  # 数据层：差分/对齐原语与待审账本模型
+│   ├── precise-review-core.js # 数据层：精确改动计划与用户编辑重基
+│   ├── edit-review-display.js # 纯显示计划：行/元素坐标与删除块锚点
+│   ├── edit-review.js       # 呈现层：编辑器内标记、CodeLens、AI 改动待审视图、Keep/Undo
+│   ├── test/                # node:test 单测（session、sessions、at-mention、auto-mention、ide-server、session-watchers、relative-time、edit-review-core、precise-review-core、edit-ledger-store、safe-path、review-text、edit-review-display、edit-review-integration、edit-review-regressions、review-safety）
 │   └── test-suite/          # 真实扩展宿主 e2e（@vscode/test-electron）
 ├── media/                   # 图标与 README 图片（会打进 vsix）
 ├── l10n/                    # vscode.l10n 运行时文案
