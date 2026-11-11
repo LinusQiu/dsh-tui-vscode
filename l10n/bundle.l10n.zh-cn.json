@@ -77,5 +77,6 @@
   "$(diff) dsh: {0} pending": "$(diff) dsh：{0} 处待审",
   "File deleted · Compare original": "文件已被删除 · 对比原稿",
   "Pre-edit original not captured · Compare original": "未捕获改动前的原稿 · 对比原稿",
-  "BOM: Undo unavailable · Compare original": "BOM 文件：撤销不可用 · 对比原稿"
+  "BOM: Undo unavailable · Compare original": "BOM 文件：撤销不可用 · 对比原稿",
+  "Only the first {0} blocks are shown · Compare with original": "只显示前 {0} 个块 · 对比原稿"
 }

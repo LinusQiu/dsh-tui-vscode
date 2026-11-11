@@ -75,7 +75,7 @@ const mock = {
         registerCommand: (id, fn) => (commands.set(id, fn), disposable),
         executeCommand: async (...args) => { commandCalls.push(args); },
     },
-    l10n: { t: text => text },
+    l10n: { t: (text, ...args) => String(text).replace(/\{(\d+)\}/g, (match, index) => args[Number(index)] ?? match) },
 };
 const load = Module._load;
 Module._load = function (name, ...args) { return name === 'vscode' ? mock : load.call(this, name, ...args); };
@@ -253,6 +253,19 @@ test('paused reasons are named: BOM and missing-original reviews keep their own 
             const missingLenses = provider.provideCodeLenses(document(file, 'AI text\n'));
             assert.ok(missingLenses.some(lens => String(lens.command.title).includes('Pre-edit original not captured')), JSON.stringify(missingLenses.map(l => l.command.title)));
         });
+    });
+});
+
+test('over the painted cap the bar admits it instead of hiding blocks silently', async () => {
+    await withReview(async review => {
+        const beforeLines = [], afterLines = [];
+        for (let index = 0; index < 225; index++) {
+            beforeLines.push(`line ${index} old`, `stable ${index}`);
+            afterLines.push(`line ${index} new`, `stable ${index}`);
+        }
+        record(review.store, 'f', beforeLines.join('\n') + '\n', afterLines.join('\n') + '\n');
+        const lenses = provider.provideCodeLenses(document('f', afterLines.join('\n') + '\n'));
+        assert.ok(lenses.some(lens => String(lens.command.title).includes('Only the first 200 blocks')), JSON.stringify(lenses.map(l => l.command.title).slice(-3)));
     });
 });
 

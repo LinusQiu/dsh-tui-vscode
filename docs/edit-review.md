@@ -41,6 +41,7 @@ text one hover or one click away.
   Undo and Compare buttons; the view title carries Keep all / Undo all. Clicking a
   row jumps to the first block in the editor instead of opening a tab.
 - **Status bar**: `$(diff) dsh: N pending`; click it for the file list.
+- At most **200 blocks** of one file are painted and get per-block buttons; past that the bar says so and points to the comparison.
 - **Hover** above a block: the pinned Keep / Undo / Compare links plus a short
   preview of the removed text (at most 160 characters).
 - **Command palette** (`dsh-tui` category): Keep AI edit, Undo AI edit, Compare

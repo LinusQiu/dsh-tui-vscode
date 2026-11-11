@@ -681,7 +681,9 @@ class EditReview {
             const hover = this.hunkHover(entry, planned.change);
             if (planned.kind === 'removed') {
                 const line = clamp(planned.line);
-                const anchor = new vscode.Range(line, 0, line, 1);
+                // Zero-width: a file can end in an empty line, and a column
+                // beyond the line length would drop the whole batch.
+                const anchor = new vscode.Range(line, 0, line, 0);
                 removed.push({ range: anchor, hoverMessage: hover });
                 badges.push(deletedTextDecoration(anchor, removedBadge(planned.removedLines)));
                 continue;
@@ -876,7 +878,9 @@ class EditReview {
     // Writes
     // ------------------------------------------------------------------------
     async writeContent(path, text, expected) {
-        if (expected !== undefined) await this.assertSafePath(path);
+        // Always: the write target must be inside the workspace and must not be
+        // a link, whether or not the caller supplied an expected image.
+        await this.assertSafePath(path);
         this.store.markWriting(path);
         try { return await this.writeContentNow(path, text, expected); }
         finally { this.store.clearWriting(path); }
@@ -1360,6 +1364,11 @@ class ReviewBarProvider {
             lens(`$(undo) ${vscode.l10n.t('Undo')} file`, UNDO_CMD, [path, this.owner.fileHint(entry)]),
             lens(`$(compare) ${vscode.l10n.t('Compare with original')}`, DIFF_CMD, [path]),
         ];
+        if (hunks.length > MAX_DECORATED_HUNKS) {
+            // Beyond the painted cap the blocks have no marks and no per-block
+            // buttons; say so instead of hiding them silently.
+            result.push(lens(vscode.l10n.t('Only the first {0} blocks are shown \u00b7 Compare with original', MAX_DECORATED_HUNKS), DIFF_CMD, [path]));
+        }
         for (const [index, hunk] of hunks.slice(0, MAX_DECORATED_HUNKS).entries()) {
             const line = Math.max(0, Math.min(hunk.startLine, document.lineCount - 1));
             const range = new vscode.Range(line, 0, line, 0);
