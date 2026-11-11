@@ -96,6 +96,17 @@ test('an upserted file with an empty diff has an empty plan, not a null one', ()
     assert.equal(plan.truncated, false);
 });
 
+test('BOM images are never planned (the editor model omits the preamble)', () => {
+    const plan = planInlineReview(entry('\uFEFFa\nx\n', '\uFEFFa\ny\n'), 'a\ny\n');
+    assert.equal(plan, null);
+});
+
+test('a lone CR counts as a line break, like the diff tokenizer', () => {
+    assert.equal(lineCount('a\rb'), 2);
+    assert.equal(lineCount('a\r\nb'), 2);
+    assert.equal(lineCount('a\nb\rc\r\nd'), 4);
+});
+
 test('the painted-hunk cap bounds pathological diffs', () => {
     const changed = MAX_DECORATED_HUNKS + 25;
     const beforeLines = [];

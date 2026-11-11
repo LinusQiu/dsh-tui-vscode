@@ -492,11 +492,14 @@ class EditReview {
 
     async withPath(path, operation) {
         if (!path || this.closing) return;
-        const previous = this.fileQueues.get(path) ?? this.ready ?? Promise.resolve();
+        // One queue per FILE, not per spelling of the path: the ledger key and
+        // the editor's fsPath may differ in drive-letter case on Windows.
+        const key = canonicalPathKey(path);
+        const previous = this.fileQueues.get(key) ?? this.ready ?? Promise.resolve();
         const next = previous.catch(() => {}).then(operation);
-        this.fileQueues.set(path, next);
+        this.fileQueues.set(key, next);
         try { return await next; }
-        finally { if (this.fileQueues.get(path) === next) this.fileQueues.delete(path); }
+        finally { if (this.fileQueues.get(key) === next) this.fileQueues.delete(key); }
     }
 
     async processFsEvent(uri, kind) {
@@ -614,6 +617,15 @@ class EditReview {
     // ------------------------------------------------------------------------
     refreshAll() {
         if (this.disposed) return;
+        if (!this.enabled()) {
+            // The gate is off: no marks, no counter, no editor-title buttons
+            // that would silently do nothing (author review 3.4-2).
+            for (const editor of vscode.window.visibleTextEditors) this.clearEditorDecorations(editor);
+            void vscode.commands.executeCommand('setContext', 'dshEditReview.activePending', false);
+            void vscode.commands.executeCommand('setContext', 'dshEditReview.hasPending', false);
+            this.pendingStatus.hide();
+            return;
+        }
         for (const editor of vscode.window.visibleTextEditors) this.decorateEditor(editor);
         const active = vscode.window.activeTextEditor;
         const path = active && active.document.uri.scheme === 'file' ? active.document.uri.fsPath : null;
@@ -649,15 +661,13 @@ class EditReview {
      */
     decorateEditor(editor) {
         if (!editor || editor.document.uri.scheme !== 'file') return;
-        const empty = [];
+        if (!this.enabled()) { this.clearEditorDecorations(editor); return; }
         const entry = this.store.get(editor.document.uri.fsPath);
         const plan = this.reviewSnapshot(entry, editor.document) && !this.isDiffEditor(editor)
             ? planInlineReview(entry, editor.document.getText(), MAX_DECORATED_HUNKS)
             : null;
         if (!plan) {
-            for (const decoration of [this.decor.added, this.decor.modified, this.decor.span, this.decor.removed, this.decor.attachment]) {
-                this.setSafe(editor, decoration, empty);
-            }
+            this.clearEditorDecorations(editor);
             return;
         }
         const maxLine = Math.max(editor.document.lineCount - 1, 0);
@@ -692,6 +702,14 @@ class EditReview {
         this.setSafe(editor, this.decor.span, spans);
         this.setSafe(editor, this.decor.removed, removed);
         this.setSafe(editor, this.decor.attachment, badges);
+    }
+
+    /** Remove every review mark from one editor (feature off / not reviewable). */
+    clearEditorDecorations(editor) {
+        if (!editor) return;
+        for (const decoration of [this.decor.added, this.decor.modified, this.decor.span, this.decor.removed, this.decor.attachment]) {
+            this.setSafe(editor, decoration, []);
+        }
     }
 
     /** One bad decoration batch must never take the others down with it. */
@@ -876,7 +894,7 @@ class EditReview {
         }
         if (expected === null) {
             await fsp.writeFile(path, text, { encoding: 'utf8', flag: 'wx' });
-            if (!document || document.isClosed) { this.settled.set(path, text); return; }
+            if (!document || document.isClosed) { this.settled.set(path, text); return text; }
         }
         if (document) {
             const lastLine = Math.max(document.lineCount - 1, 0);
@@ -903,6 +921,7 @@ class EditReview {
             throw Error(vscode.l10n.t('Saving changed the file (possibly a save participant). Exact Undo did not complete; the original was retained and the current file requires review.'));
         }
         this.settled.set(path, text);
+        return actual;
     }
 
     async applyPlan(entry, action, expected) {
@@ -968,9 +987,12 @@ class EditReview {
         if (current === null) return this.staleWarning();
         const plan = this.store.planHunkUndo(path, hint, current);
         if (plan.status !== 'planned') return this.staleWarning();
-        try { await this.writeContent(path, plan.text, current); }
+        let actual;
+        try { actual = await this.writeContent(path, plan.text, current); }
         catch (error) { return this.warn(error.message); }
-        this.store.commitHunkUndo(path, plan.text);
+        // Publish what the editor/disk really contains (the store contract),
+        // not the planned text: a save participant may have changed it.
+        this.store.commitHunkUndo(path, actual);
         this.bar?.refresh();
         vscode.window.setStatusBarMessage(vscode.l10n.t('Undid this change in {0}', nodePath.basename(path)), 3000);
     }
@@ -1044,6 +1066,10 @@ class EditReview {
         // Whole-file Keep never writes. A conflicted (paused) review accepts the
         // current file as-is, so later/overlapping edits must not block it.
         if (!entry.userTouched && entry.kind !== 'delete' && current !== entry.after) return this.staleWarning();
+        // The reads above yielded: a remove+record for the same path in that
+        // window would have minted a NEW entry — never accept a review the
+        // caller did not see.
+        if (this.store.get(path) !== entry) return this.staleWarning();
         this.store.keep(path);
         if (!exists) this.settled.delete(path);
         else this.settled.set(path, current);
@@ -1078,9 +1104,9 @@ class EditReview {
         if (this.bomUnsupported(entry, currentText)) {
             return this.warn(vscode.l10n.t('Undo for UTF-8 BOM files is not supported yet. No restoration was applied; use version control.'));
         }
-        // A conflicted review goes to the confirmation prompt below instead of
-        // the misleading "out of date" warning (the modal guards the restore).
-        if (fileHint && !entry.userTouched && currentText !== entry.after) return this.staleWarning();
+        // A review whose images no longer match the disk goes to the
+        // confirmation prompt below (planUndo), never to the stale warning:
+        // the hint already proved this is the entry the button targets.
         const document = this.findDocument(path);
         if (document?.isDirty || (document && currentExists && document.getText() !== currentText)) {
             return this.warn(vscode.l10n.t('Save or resolve your editor changes before Undo. No user edits were overwritten.'));
@@ -1173,6 +1199,7 @@ class EditReview {
     }
 
     entries() {
+        if (!this.enabled()) return [];
         return this.store.list().filter(entry =>
             !!vscode.workspace.getWorkspaceFolder(vscode.Uri.file(entry.path)));
     }
@@ -1275,24 +1302,46 @@ class ReviewBarProvider {
     }
 
     provideCodeLenses(document) {
+        if (!this.owner.enabled()) return [];
         const entry = this.owner.store.get(document.uri.fsPath);
         if (!entry) return [];
         if (!this.owner.reviewSnapshot(entry, document)) {
             const at = new vscode.Range(0, 0, 0, 0);
+            // Say WHY the review is paused: a lost buffer, a deletion, a
+            // missing original and a BOM file each need a different safe exit.
+            let compareTitle;
+            let offerKeep = false;
+            if (entry.kind === 'delete') {
+                compareTitle = vscode.l10n.t('File deleted \u00b7 Compare original');
+                offerKeep = true;
+            }
+            else if (entry.beforeMissing) {
+                compareTitle = vscode.l10n.t('Pre-edit original not captured \u00b7 Compare original');
+                offerKeep = true;
+            }
+            else if (this.owner.bomUnsupported(entry)) {
+                compareTitle = vscode.l10n.t('BOM: Undo unavailable \u00b7 Compare original');
+                offerKeep = true;
+            }
+            else if (entry.userTouched) {
+                compareTitle = vscode.l10n.t('Review paused: overlapping or later edits \u00b7 Compare original');
+                offerKeep = true;
+            }
+            else {
+                compareTitle = vscode.l10n.t('Review synchronizing \u00b7 Compare original');
+            }
             const lenses = [new vscode.CodeLens(at, {
-                title: entry.userTouched
-                    ? vscode.l10n.t('Review paused: overlapping or later edits \u00b7 Compare original')
-                    : vscode.l10n.t('Review synchronizing \u00b7 Compare original'),
+                title: compareTitle,
                 command: DIFF_CMD,
                 arguments: [entry.path],
             })];
-            if (entry.userTouched) {
+            if (offerKeep) {
                 // Whole-file Keep never writes: accepting the current file is the
-                // safe way out of a review that later/overlapping edits paused.
+                // safe way out of a review that cannot be edited per block.
                 lenses.push(new vscode.CodeLens(at, {
                     title: `$(check) ${vscode.l10n.t('Keep (accept current file)')}`,
                     command: KEEP_CMD,
-                    arguments: [entry.path],
+                    arguments: [entry.path, this.owner.fileHint(entry)],
                 }));
             }
             return lenses;

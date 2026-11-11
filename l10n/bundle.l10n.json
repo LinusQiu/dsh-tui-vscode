@@ -74,5 +74,8 @@
   "Keep (accept current file)": "Keep (accept current file)",
   "Keep": "Keep",
   "Undo": "Undo",
-  "$(diff) dsh: {0} pending": "$(diff) dsh: {0} pending"
+  "$(diff) dsh: {0} pending": "$(diff) dsh: {0} pending",
+  "File deleted · Compare original": "File deleted · Compare original",
+  "Pre-edit original not captured · Compare original": "Pre-edit original not captured · Compare original",
+  "BOM: Undo unavailable · Compare original": "BOM: Undo unavailable · Compare original"
 }

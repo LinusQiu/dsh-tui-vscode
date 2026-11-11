@@ -74,5 +74,8 @@
   "Keep (accept current file)": "保留（接受当前文件）",
   "Keep": "保留",
   "Undo": "撤销",
-  "$(diff) dsh: {0} pending": "$(diff) dsh：{0} 处待审"
+  "$(diff) dsh: {0} pending": "$(diff) dsh：{0} 处待审",
+  "File deleted · Compare original": "文件已被删除 · 对比原稿",
+  "Pre-edit original not captured · Compare original": "未捕获改动前的原稿 · 对比原稿",
+  "BOM: Undo unavailable · Compare original": "BOM 文件：撤销不可用 · 对比原稿"
 }

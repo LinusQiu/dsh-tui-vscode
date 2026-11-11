@@ -30,16 +30,19 @@ const MAX_DECORATED_HUNKS = 200;
 
 /** Number of lines in `text` (1 for the empty string, like TextDocument). */
 function lineCount(text) {
-    let lines = 1;
-    for (let index = 0; index < text.length; index++) {
-        if (text.charCodeAt(index) === 10) lines++;
-    }
-    return lines;
+    // Match precise-review-core's tokenizer (and VS Code TextDocument): CRLF,
+    // LF and a lone CR are all line breaks.
+    const breaks = text.match(/\r\n|\r|\n/g);
+    return breaks ? breaks.length + 1 : 1;
 }
 
 /** True when the entry is currently pairable with the editor document. */
 function isReviewable(entry) {
-    return !!entry
+    if (!entry) return false;
+    // The editor model omits the UTF-8 encoding BOM; a BOM image can never be
+    // matched coordinate-for-coordinate, so it is not planned at all.
+    const boms = [entry.before, entry.after].some(text => typeof text === 'string' && text.startsWith('\uFEFF'));
+    return !boms
         && !entry.beforeMissing
         && entry.kind !== 'delete'
         && entry.userTouched !== true

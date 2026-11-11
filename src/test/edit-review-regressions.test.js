@@ -60,7 +60,7 @@ const mock = {
         terminals: [{ name: 'DeepSeek' }],
         visibleTextEditors: [],
         activeTextEditor: undefined,
-        createStatusBarItem: () => ({ show() { }, hide() { }, dispose() { } }),
+        createStatusBarItem: () => (globalThis.__lastStatusBar = { show() { }, hide() { globalThis.__statusBarHidden = true; }, dispose() { } }),
         onDidCloseTerminal: () => disposable,
         createTextEditorDecorationType: () => ({ dispose() { } }),
         registerTreeDataProvider: () => disposable,
@@ -220,6 +220,64 @@ test('undo on a paused entry routes to the confirmation prompt, not the stale wa
             assert.equal(warnings.some(message => String(message).includes('earlier review snapshot')), false);
             assert.equal(await fs.readFile(file, 'utf8'), 'user version\n', 'declined modal wrote nothing');
             assert.ok(review.store.get(file), 'the pending review survived');
+        });
+    });
+});
+
+test('paused reasons are named: a stale deleted-file tab says so and still offers Keep', async () => {
+    await fixture(async file => {
+        await fs.writeFile(file, 'gone original\n');
+        await fs.unlink(file);
+        await withReview(async review => {
+            record(review.store, file, 'gone original\n', null, { kind: 'delete' });
+            mock.workspace.textDocuments = [document(file, 'gone original\n')];
+            try {
+                const lenses = provider.provideCodeLenses(document(file, 'gone original\n'));
+                assert.ok(lenses.some(lens => String(lens.command.title).includes('File deleted')), JSON.stringify(lenses.map(l => l.command.title)));
+                assert.ok(lenses.some(lens => lens.command.command === 'dsh-tui-vscode.editKeep' && lens.command.arguments[1]?.file), 'keep stays available');
+            }
+            finally { mock.workspace.textDocuments = []; }
+        });
+    });
+});
+
+test('paused reasons are named: BOM and missing-original reviews keep their own exit', async () => {
+    await fixture(async file => {
+        await fs.writeFile(file, 'BOM changed\n');
+        await withReview(async review => {
+            record(review.store, file, '\uFEFFBOM original\n', '\uFEFFBOM changed\n');
+            const bomLenses = provider.provideCodeLenses(document(file, 'BOM changed\n'));
+            assert.ok(bomLenses.some(lens => String(lens.command.title).includes('BOM: Undo unavailable')), JSON.stringify(bomLenses.map(l => l.command.title)));
+            review.store.clear();
+            record(review.store, file, 'unknown original\n', 'AI text\n', { beforeMissing: true });
+            const missingLenses = provider.provideCodeLenses(document(file, 'AI text\n'));
+            assert.ok(missingLenses.some(lens => String(lens.command.title).includes('Pre-edit original not captured')), JSON.stringify(missingLenses.map(l => l.command.title)));
+        });
+    });
+});
+
+test('turning the gate off removes marks, counter and CodeLens', async () => {
+    await fixture(async file => {
+        await fs.writeFile(file, 'AI\n');
+        await withReview(async review => {
+            record(review.store, file, 'before\n', 'AI\n');
+            const sets = [];
+            const editor = { document: document(file, 'AI\n'), setDecorations: (type, options) => sets.push(options) };
+            mock.window.visibleTextEditors = [editor];
+            globalThis.__statusBarHidden = false;
+            const configuration = mock.workspace.getConfiguration;
+            mock.workspace.getConfiguration = () => ({ get: (key, fallback) => (key === 'editReview.enabled' ? false : fallback) });
+            try {
+                review.refreshAll();
+                assert.equal(sets.every(options => Array.isArray(options) && options.length === 0), true, 'every batch is cleared');
+                assert.equal(globalThis.__statusBarHidden, true, 'the counter disappears');
+                assert.deepEqual(provider.provideCodeLenses(document(file, 'AI\n')), [], 'CodeLens disappear');
+                assert.deepEqual(review.entries(), [], 'the tree is empty');
+            }
+            finally {
+                mock.workspace.getConfiguration = configuration;
+                mock.window.visibleTextEditors = [];
+            }
         });
     });
 });
