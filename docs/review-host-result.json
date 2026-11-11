@@ -1,12 +1,12 @@
 {
   "feature": "edit-review presentation layer (PR-2 of the #46 split)",
-  "capturedAt": "2026-11-11T09:10:00Z",
+  "capturedAt": "2026-11-11T09:25:00Z",
   "harness": {
     "vscode": "1.145.3",
     "node": "v25.8.0 (host runner; CI's extension host uses its own embedded Node)",
-    "head": "f88021f1f902aabace25d91e8545e6b427bcf8e8",
+    "head": "2d57f4d46a42ac2cebb304d85539219ac1bdd5cf",
     "workingTree": "clean",
-    "outBuiltAt": "2026-11-11T09:01:56.002Z",
+    "outBuiltAt": "2026-11-11T09:12:04.565Z",
     "commands": [
       "DSH_REVIEW_ARTIFACT_ROOT=<isolated dir> VSCODE_EXECUTABLE=<Code.exe> node scripts/run-review-host.cjs",
       "DSH_REVIEW_ARTIFACT_ROOT=<isolated dir> VSCODE_EXECUTABLE=<Code.exe> DSH_REVIEW_VISUAL_HANDSHAKE=1 node scripts/run-review-ui-host.cjs"
@@ -64,14 +64,15 @@
     "typecheck": "npm run typecheck — exit 0",
     "unit": {
       "command": "npm test",
-      "tests": 366,
-      "passed": 363,
+      "tests": 367,
+      "passed": 364,
       "skipped": 3,
       "failed": 0
     },
     "e2e": {
       "command": "npm run test:e2e",
-      "exitCode": 0
+      "exitCode": 0,
+      "note": "last local run exit 0; the fork CI e2e job covers the final head"
     },
     "package": {
       "command": "npm run package",
@@ -87,8 +88,8 @@
     "note": "Simulated CI on the fork PR (upstream CI needs a maintainer approval to run).",
     "repository": "LinusQiu/dsh-tui-vscode",
     "pullRequest": 3,
-    "run": 42992331715,
-    "url": "https://github.com/LinusQiu/dsh-tui-vscode/actions/runs/42992331715",
+    "run": 42993217157,
+    "url": "https://github.com/LinusQiu/dsh-tui-vscode/actions/runs/42993217157",
     "result": "success",
     "checks": [
       "test (ubuntu-latest, 22)",
