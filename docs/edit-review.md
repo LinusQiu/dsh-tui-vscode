@@ -20,10 +20,11 @@ The editor shows four different things, and they must not be confused:
 | --- | --- |
 | Pure addition | Whole added line washed **dark green**, green gutter triangle, overview-ruler tick |
 | Rewritten line | Whole rewritten line washed **light green**; the changed elements inside it darker green |
+| Deleted + added inside one line | The deleted fragment is kept as a **red strikethrough ghost** at its old column; the replacement fragment is darker green |
 | Pure deletion block | No live line belongs to it: the surviving anchor line carries a **dark-red left border**, a red gutter icon and a compact `⊖N` badge (N = removed lines). Hover previews the removed text |
 | Compared view | A real VS Code diff, opened **only** on request — never automatically |
 
-The removed text is deliberately **not** painted inline. An extension cannot insert
+Whole removed lines are deliberately **not** painted inline. A short fragment deleted from a line that still exists is kept as a red strikethrough ghost, so a partial rewrite reads completely; a whole removed line would not fit inline without hiding the live text. An extension cannot insert
 extra lines into a normal editor (VS Code keeps that capability internal), so an
 inline "old text" mark would have to share a line with the new text — the old
 display did exactly that and made dense changes unreadable. Instead the deletion

@@ -64,6 +64,16 @@ test('a rewritten line followed by pure additions keeps the two green weights ap
     assert.deepEqual(plan.lines.added, [2, 3]);
 });
 
+test('an intra-line deletion keeps its old fragment as a ghost at the old column', () => {
+    const plan = planInlineReview(entry('x = old;\nkeep\n', 'x = new;\nkeep\n'), 'x = new;\nkeep\n');
+    assert.equal(plan.hunks[0].kind, 'modified');
+    assert.ok(plan.hunks[0].spans.length >= 1, 'the replacement is dark green');
+    assert.equal(plan.ghosts.length, 1, 'one deleted fragment');
+    assert.ok(plan.ghosts[0].text.includes('old'), JSON.stringify(plan.ghosts));
+    assert.equal(plan.ghosts[0].line, 0);
+    assert.ok(plan.ghosts[0].startCol >= 0);
+});
+
 test('every planned hunk carries a pinned button hint', () => {
     const plan = planInlineReview(entry('a\nx\n', 'a\ny\n'), 'a\ny\n');
     const hint = plan.hunks[0].hint;

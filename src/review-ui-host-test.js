@@ -64,6 +64,7 @@ async function run() {
             const file = path.join(root, 'ui.txt');
             const before = [
                 'header line',
+                'token = "old middle";',
                 'unchanged separator one',
                 'old text A',
                 'unchanged separator two',
@@ -74,6 +75,7 @@ async function run() {
             ].join('\r\n');
             const after = [
                 'header line',
+                'token = "new middle";',
                 'unchanged separator one',
                 'new text A',
                 'unchanged separator two',

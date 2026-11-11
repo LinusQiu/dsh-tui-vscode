@@ -175,6 +175,25 @@ test('rewritten lines are light green and only the changed element is darker gre
     });
 }));
 
+test('an intra-line deletion is a red strikethrough ghost; errors only live in hover', async () => {
+    await fixture(async file => {
+        await fs.writeFile(file, 'x = new;\nkeep\n');
+        await withReview(async review => {
+            record(review.store, file, 'x = old;\nkeep\n', 'x = new;\nkeep\n');
+            const batches = new Map();
+            review.decor = { added: 'added', modified: 'modified', span: 'span', removed: 'removed', attachment: 'attachment' };
+            review.decorateEditor({ document: document(file, 'x = new;\nkeep\n'), setDecorations: (type, options) => batches.set(type, options) });
+            assert.equal(batches.get('modified').length, 1, 'the rewritten line stays light green');
+            assert.ok(batches.get('span').length >= 1, 'the replacement fragment is darker green');
+            const attachments = batches.get('attachment');
+            assert.equal(attachments.length, 1, 'exactly one deleted-fragment ghost');
+            const before = attachments[0].renderOptions.before;
+            assert.equal(before.textDecoration, 'line-through');
+            assert.ok(String(before.contentText).includes('old'), JSON.stringify(before));
+        });
+    });
+});
+
 test('recording an edit never opens a comparison tab on its own', () => fixture(async file => {
     await fs.writeFile(file, 'AI\n');
     await withReview(async review => {

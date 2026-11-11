@@ -67,6 +67,19 @@ function cmdLink(command, arg, label, hint) {
     return `[${label}](command:${command}?${args})`;
 }
 
+/**
+ * A short deleted fragment inside a still-live line: red strikethrough at its
+ * old column. Whole removed lines never use this (they are block markers).
+ */
+function deletedFragmentRender(text) {
+    return {
+        contentText: text,
+        color: new vscode.ThemeColor('gitDecoration.deletedResourceForeground'),
+        textDecoration: 'line-through',
+        margin: '0 3px 0 0',
+    };
+}
+
 /** Tiny render option for the removed-block badge (attachment, not text). */
 function removedBadge(count) {
     return {
@@ -676,7 +689,7 @@ class EditReview {
         const modified = [];
         const spans = [];
         const removed = [];
-        const badges = [];
+        const attachments = [];
         for (const planned of plan.hunks) {
             const hover = this.hunkHover(entry, planned.change);
             if (planned.kind === 'removed') {
@@ -685,7 +698,7 @@ class EditReview {
                 // beyond the line length would drop the whole batch.
                 const anchor = new vscode.Range(line, 0, line, 0);
                 removed.push({ range: anchor, hoverMessage: hover });
-                badges.push(deletedTextDecoration(anchor, removedBadge(planned.removedLines)));
+                attachments.push(deletedTextDecoration(anchor, removedBadge(planned.removedLines)));
                 continue;
             }
             for (const line of planned.addedLines) {
@@ -698,12 +711,22 @@ class EditReview {
                 const line = clamp(span.line);
                 spans.push({ range: new vscode.Range(line, span.startCol, line, span.endCol), hoverMessage: hover });
             }
+            for (const ghost of planned.ghosts) {
+                const line = clamp(ghost.line);
+                const startCol = Math.max(0, ghost.startCol);
+                const range = new vscode.Range(line, startCol, line, Math.max(ghost.endCol, startCol + 1));
+                attachments.push({ ...deletedTextDecoration(range, this.ghostRender(ghost.text)), hoverMessage: hover });
+            }
         }
         this.setSafe(editor, this.decor.added, added);
         this.setSafe(editor, this.decor.modified, modified);
         this.setSafe(editor, this.decor.span, spans);
         this.setSafe(editor, this.decor.removed, removed);
-        this.setSafe(editor, this.decor.attachment, badges);
+        this.setSafe(editor, this.decor.attachment, attachments);
+    }
+
+    ghostRender(text) {
+        return deletedFragmentRender(text);
     }
 
     /** Remove every review mark from one editor (feature off / not reviewable). */

@@ -66,12 +66,14 @@ function isReviewable(entry) {
  *     addedLines: number[],    // pure additions inside the block (darker green)
  *     modifiedLines: number[], // rewritten lines (lighter green)
  *     spans: Array<{line: number, startCol: number, endCol: number}>,
+ *     ghosts: Array<{line: number, startCol: number, endCol: number, text: string}>,
  *     removedLines: number,    // > 0 only for a deletion block
  *   }>,
  *   totalHunks: number,
  *   truncated: boolean,
  *   lines: {added: number[], modified: number[], removed: number[]},
  *   spans: Array<{line: number, startCol: number, endCol: number}>,
+ *   ghosts: Array<{line: number, startCol: number, endCol: number, text: string}>,
  * }>}
  */
 function planInlineReview(entry, currentText, limit = MAX_DECORATED_HUNKS) {
@@ -82,7 +84,7 @@ function planInlineReview(entry, currentText, limit = MAX_DECORATED_HUNKS) {
     if (totalHunks === 0) {
         return {
             hunks: [], totalHunks: 0, truncated: false,
-            lines: { added: [], modified: [], removed: [] }, spans: [],
+            lines: { added: [], modified: [], removed: [] }, spans: [], ghosts: [],
         };
     }
     const maxLine = Math.max(lineCount(currentText) - 1, 0);
@@ -90,6 +92,7 @@ function planInlineReview(entry, currentText, limit = MAX_DECORATED_HUNKS) {
     const hunks = [];
     const lines = { added: [], modified: [], removed: [] };
     const spans = [];
+    const ghosts = [];
     for (const change of diff.hunks.slice(0, limit)) {
         const anchor = clamp(change.startLine);
         const hint = precise.changeHint(entry, change);
@@ -97,7 +100,7 @@ function planInlineReview(entry, currentText, limit = MAX_DECORATED_HUNKS) {
             lines.removed.push(anchor);
             hunks.push({
                 change, hint, line: anchor, kind: 'removed',
-                lines: [], addedLines: [], modifiedLines: [], spans: [], removedLines: change.removed,
+                lines: [], addedLines: [], modifiedLines: [], spans: [], ghosts: [], removedLines: change.removed,
             });
             continue;
         }
@@ -108,7 +111,7 @@ function planInlineReview(entry, currentText, limit = MAX_DECORATED_HUNKS) {
         const oldIndexByNew = new Map(alignment.pairs.map(pair => [pair.newIndex, pair.oldIndex]));
         const planned = {
             change, hint, line: anchor, kind: change.kind,
-            lines: [], addedLines: [], modifiedLines: [], spans: [], removedLines: 0,
+            lines: [], addedLines: [], modifiedLines: [], spans: [], ghosts: [], removedLines: 0,
         };
         const lineTotal = Math.max(change.lineCount, 1);
         for (let offset = 0; offset < lineTotal; offset++) {
@@ -124,12 +127,34 @@ function planInlineReview(entry, currentText, limit = MAX_DECORATED_HUNKS) {
             lines.modified.push(line);
             const oldLine = change.removedTexts[oldIndex];
             const newLine = change.addedTexts[offset] ?? '';
+            const ghostByAnchor = new Map();
             for (const element of elementChanges(oldLine, newLine)) {
                 const startCol = Math.max(0, Math.min(element.nStart, newLine.length));
                 const endCol = Math.max(startCol, Math.min(element.nEnd, newLine.length));
-                if (endCol <= startCol) continue;
-                planned.spans.push({ line, startCol, endCol });
-                spans.push({ line, startCol, endCol });
+                if (endCol > startCol) {
+                    planned.spans.push({ line, startCol, endCol });
+                    spans.push({ line, startCol, endCol });
+                }
+                if (element.oEnd <= element.oStart) continue;
+                // A fragment that disappeared from a still-live line: keep it at
+                // its old column so a partial rewrite reads completely. Whole
+                // removed lines never take this path (they are block markers).
+                const anchorCol = startCol;
+                const group = ghostByAnchor.get(anchorCol) ?? { end: anchorCol + 1, texts: [] };
+                group.end = Math.max(group.end, endCol, anchorCol + 1);
+                group.texts.push({ at: element.oStart, text: oldLine.slice(element.oStart, element.oEnd) });
+                ghostByAnchor.set(anchorCol, group);
+            }
+            for (const [anchorCol, group] of [...ghostByAnchor].sort((a, b) => a[0] - b[0])) {
+                let text = group.texts.sort((a, b) => a.at - b.at).map(part => part.text).join('');
+                // The render option supplies a small right margin: keeping the
+                // separator outside the strikethrough avoids a dash that looks
+                // like a hyphen between the old and the new fragment.
+                text = text.replace(/\s+$/, '');
+                if (text.length > 60) text = text.slice(0, 59) + '\u2026';
+                const ghost = { line, startCol: anchorCol, endCol: group.end, text };
+                planned.ghosts.push(ghost);
+                ghosts.push(ghost);
             }
         }
         hunks.push(planned);
@@ -140,6 +165,7 @@ function planInlineReview(entry, currentText, limit = MAX_DECORATED_HUNKS) {
         truncated: totalHunks > hunks.length,
         lines,
         spans,
+        ghosts,
     };
 }
 
