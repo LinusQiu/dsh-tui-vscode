@@ -57,6 +57,7 @@ async function run() {
         const api = await vscode.extensions.getExtension('baobaolaodie.dsh-tui-vscode').activate();
         review = api.getEditReviewTestBridge();
         await review.ready;
+        result.insetApiPresent = review.insetApiPresent?.() ?? false;
         const terminal = vscode.window.createTerminal({ name: 'DeepSeek' });
         review.trackTerminal(terminal);
         try {
@@ -88,6 +89,7 @@ async function run() {
             const uri = vscode.Uri.file(file);
             const editor = await vscode.window.showTextDocument(uri, { preview: false });
             await record(file, after);
+            result.insetCount = review.insetCount?.() ?? 0;
             await waitFor(() => editor.document.getText() === after, 'editor shows the reviewed text');
             await sleep(250);
             await vscode.commands.executeCommand('notifications.clearAll');
@@ -100,6 +102,12 @@ async function run() {
                 await wait();
             }
             result.checks.push('inline phases captured for all three themes');
+            if (result.insetApiPresent && !(result.insetCount > 0)) {
+                // The extension-test host attributes proposed-API calls to the
+                // null extension, so insets cannot be created here; the plain
+                // development-host demo covers that path.
+                result.checks.push('inset API present but blocked in the extension-test host (covered by the plain-host demo)');
+            }
             // keep the pristine file for the sidebar shot
             await setTheme('Default Dark+');
             await vscode.commands.executeCommand('dsh-tui-vscode.editReview.focus').catch(() => { });

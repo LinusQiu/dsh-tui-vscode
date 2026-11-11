@@ -68,6 +68,27 @@ text one hover or one click away.
   symbolic link are refused, and a save participant that changes the file keeps
   the original review and flags the conflict.
 
+## Personal build: deleted lines as their own rows
+
+The upstream PR uses a stable block marker for a whole removed block. A personal
+build on top of it can render the deleted lines as **their own dark-red rows**
+instead, using the proposed `editorInsets` API (`window.createWebviewTextEditorInset`).
+
+- The rows are a webview slice inside the editor: plain text, no scripts; the
+  editor text below is pushed down by exactly the number of removed lines.
+- When the host does not expose the API (or the extension is started without it),
+  the stable block marker is used instead.
+- Because the API is proposed, such a build cannot be published on the
+  Marketplace. Enabling it in a local build takes one line in
+  `%USERPROFILE%\.vscode\argv.json`: `"enable-proposed-api": ["baobaolaodie.dsh-tui-vscode"]`
+  (plus `enabledApiProposals` already declared in package.json), then a full
+  restart of VS Code. A development host additionally needs the `out/` files
+  copied into the staged extension folder (a junction makes the `vscode` module
+  attribute the call to the null extension, and proposed APIs are refused).
+- Limits: at most 30 removed blocks per file get an inset; a block at the very
+  top of the file is placed below its first surviving line; the rows carry no
+  line numbers.
+
 ## Settings
 
 | Setting | Default | Meaning |

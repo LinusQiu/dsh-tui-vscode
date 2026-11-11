@@ -53,6 +53,20 @@
 - **安全拒绝**：带 UTF-8 BOM 的文件不能经编辑器模型撤销（Undo 拒绝、Keep 可用）；
   工作区之外或穿过符号链接的写入被拒绝；保存参与者改了文件则保留原稿并标冲突。
 
+## 个人构建：被删行的独立行
+
+上游 PR 对整块删除使用稳定的块标记；在它之上的个人构建可以把被删的旧行以**独立的深红行**显示，借助提案接口 `editorInsets`（`window.createWebviewTextEditorInset`）。
+
+- 这些行是编辑器内的 webview 切片：纯文本、无脚本；下方正文会正好下移被删行数。
+- 宿主不提供该接口（或扩展未以该方式启动）时，自动退回稳定块标记。
+- 因为是提案接口，这种构建不能发布到应用商店。本机启用只需在
+  `%USERPROFILE%\.vscode\argv.json` 加一行
+  `"enable-proposed-api": ["baobaolaodie.dsh-tui-vscode"]`（package.json 已声明
+  `enabledApiProposals`），然后完全重启 VS Code。开发宿主还必须把 `out/` 真实复制进
+  扩展目录（用 junction 会让 `vscode` 模块把调用归到 null 扩展，提案接口被拒绝）。
+- 限制：每个文件最多 30 个删除块生成 inset；文件第一行的删除块只能放在其首个存活行下方；
+  这些行不带行号。
+
 ## 设置
 
 | 设置 | 默认 | 含义 |

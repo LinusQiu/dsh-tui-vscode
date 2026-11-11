@@ -30,6 +30,7 @@ fs.writeFileSync(path.join(workspace, '.vscode/settings.json'), JSON.stringify({
 const args = [workspace, '--new-window', '--skip-welcome', '--skip-release-notes', '--disable-workspace-trust', '--disable-updates', '--no-sandbox', '--disable-gpu-sandbox',
     `--user-data-dir=${path.join(testRoot, 'user-data')}`, `--extensions-dir=${path.join(testRoot, 'extensions')}`,
     '--disable-extension=github.copilot-chat', '--disable-extension=vscode.github-authentication',
+    '--enable-proposed-api', 'baobaolaodie.dsh-tui-vscode',
     `--extensionDevelopmentPath=${root}`, `--extensionTestsPath=${path.join(root, 'out/review-host-test.js')}`];
 console.log('HOST_ROOT', testRoot);
 fs.writeFileSync(path.join(artifactRoot, 'latest-host-root.txt'), testRoot);

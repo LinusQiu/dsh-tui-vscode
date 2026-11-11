@@ -418,5 +418,8 @@
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"
-  }
+  },
+  "enabledApiProposals": [
+    "editorInsets"
+  ]
 }

@@ -24,12 +24,16 @@ fs.writeFileSync(path.join(stage, 'package.json'), JSON.stringify(manifest, null
 for (const item of ['out', 'media', 'l10n', 'node_modules', 'package.nls.json', 'package.nls.zh-cn.json']) {
     const source = path.join(repo, item);
     const target = path.join(stage, item);
-    if (!fs.existsSync(target)) {
-        if (fs.statSync(source).isDirectory()) {
-            fs.symlinkSync(source, target, process.platform === 'win32' ? 'junction' : 'dir');
-        } else {
-            fs.copyFileSync(source, target);
-        }
+    if (fs.existsSync(target)) fs.rmSync(target, { recursive: true, force: true });
+    // The vscode module maps a require() caller back to an extension by its
+    // path prefix. A junction for out/ makes the caller path point outside the
+    // extension, and proposed APIs are then rejected as nullExtensionDescription.
+    if (item === 'out' || item === 'media' || item === 'l10n') {
+        fs.cpSync(source, target, { recursive: true });
+    } else if (fs.statSync(source).isDirectory()) {
+        fs.symlinkSync(source, target, process.platform === 'win32' ? 'junction' : 'dir');
+    } else {
+        fs.copyFileSync(source, target);
     }
 }
 fs.writeFileSync(path.join(workspace, '.vscode/settings.json'), JSON.stringify({
@@ -47,6 +51,8 @@ const args = [
     `--extensions-dir=${path.join(base, 'extensions')}`,
     '--disable-extension=github.copilot-chat',
     '--disable-extension=vscode.github-authentication',
+    '--enable-proposed-api', 'baobaolaodie.dsh-tui-vscode',
+    '--enable-proposed-api', 'nullExtensionDescription',
     `--extensionDevelopmentPath=${stage}`,
     `--extensionTestsPath=${path.join(repo, 'out/review-ui-host-test.js')}`,
     `--remote-debugging-port=${port}`,

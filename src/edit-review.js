@@ -89,6 +89,31 @@ function removedBadge(count) {
     };
 }
 
+/** Escape text for a webview inset (old file content is not trusted markup). */
+function escapeInsetText(text) {
+    return String(text).replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[character]);
+}
+
+/**
+ * Dark-red rows for the removed old lines. The inset is a webview slice inside
+ * the editor, so the old lines keep their own rows instead of being crammed
+ * into a surviving line. Plain text only, no scripts; theme CSS variables keep
+ * the rows in the active theme. No line-number column: the inset starts at the
+ * editor content edge, and a number column would shift the code away from the
+ * editor's own text.
+ */
+function removedInsetHtml(lines) {
+    const rows = lines.map(line => `<div class="row">${escapeInsetText(line) || '&nbsp;'}</div>`).join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
+        + 'html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#7a1a1a;}'
+        + '.row{height:1.35em;line-height:1.35em;white-space:pre;overflow:hidden;padding-left:0;'
+        + 'font-family:var(--vscode-editor-font-family);font-size:var(--vscode-editor-font-size);'
+        + 'color:#ffe9e9;}'
+        + '</style></head><body>' + rows + '</body></html>';
+}
+
 class EditReview {
     /**
      * @param {import('vscode').ExtensionContext} context
@@ -115,6 +140,10 @@ class EditReview {
         this.observedDuringScan = null;
         this.directoryInventory = new Map();
         this.contentEmitter = new vscode.EventEmitter();
+        /** Per-editor webview insets that carry the removed old lines. */
+        this.insets = new Map();
+        /** Last rendered signature per editor, so typing does not recreate insets. */
+        this.insetSignatures = new Map();
         this.context = context;
         this.terminalName = options?.terminalName ?? 'DeepSeek';
         this.trackedTerminals = new Set();
@@ -328,6 +357,11 @@ class EditReview {
         void this.shutdown().catch(error => console.error('[dsh-tui-vscode] Review shutdown failed:', error));
         this.disposed = true;
         this.unsub?.();
+        for (const record of this.insets.values()) {
+            for (const inset of record.created) { try { inset.dispose(); } catch { /* already gone */ } }
+        }
+        this.insets.clear();
+        this.insetSignatures.clear();
         this.watcher?.dispose();
         for (const decoration of Object.values(this.decor)) decoration?.dispose?.();
     }
@@ -633,7 +667,10 @@ class EditReview {
         if (!this.enabled()) {
             // The gate is off: no marks, no counter, no editor-title buttons
             // that would silently do nothing (author review 3.4-2).
-            for (const editor of vscode.window.visibleTextEditors) this.clearEditorDecorations(editor);
+            for (const editor of vscode.window.visibleTextEditors) {
+                this.clearEditorDecorations(editor);
+                this.clearInsets(editor);
+            }
             void vscode.commands.executeCommand('setContext', 'dshEditReview.activePending', false);
             void vscode.commands.executeCommand('setContext', 'dshEditReview.hasPending', false);
             this.pendingStatus.hide();
@@ -668,6 +705,71 @@ class EditReview {
             && (tab.input.modified.toString() === target || tab.input.original.toString() === target));
     }
 
+    /** The proposed editorInsets API, when the host exposes it. */
+    insetApi() {
+        return typeof vscode.window.createWebviewTextEditorInset === 'function'
+            ? vscode.window.createWebviewTextEditorInset.bind(vscode.window)
+            : null;
+    }
+
+    /**
+     * Drop the webview insets of one editor. Called whenever the marks are
+     * removed (feature off, review no longer drawable, diff editor).
+     */
+    clearInsets(editor) {
+        const key = editor.document.uri.toString();
+        const record = this.insets.get(key);
+        if (record) {
+            for (const inset of record.created) {
+                try { inset.dispose(); } catch { /* the editor may already be gone */ }
+            }
+            this.insets.delete(key);
+        }
+        this.insetSignatures.delete(key);
+    }
+
+    /**
+     * Render the removed old lines as their own dark-red rows, using the
+     * proposed editorInsets API (a webview slice inside the editor). This is
+     * the personal-build variant: the proposed API cannot be published on the
+     * Marketplace, so the upstream PR keeps the block-marker fallback.
+     * @returns {Set<number>} the anchor lines covered by a rendered inset; those
+     *   hunks no longer need the block-marker fallback.
+     */
+    renderRemovedInsets(editor, entry, plan) {
+        const create = this.insetApi();
+        const removed = plan.hunks.filter(hunk => hunk.kind === 'removed').slice(0, 30);
+        if (!create || removed.length === 0) {
+            this.clearInsets(editor);
+            return new Set();
+        }
+        const key = editor.document.uri.toString();
+        const signature = entry.id + '|' + removed.map(hunk => `${hunk.line}:${hunk.removedLines}:${hunk.change.oldText.length}`).join(',') + '|' + editor.document.lineCount;
+        if (this.insetSignatures.get(key) === signature) {
+            return new Set(this.insets.get(key)?.lines ?? []);
+        }
+        this.clearInsets(editor);
+        const created = [];
+        const linesCovered = new Set();
+        for (const hunk of removed) {
+            const line = Math.max(0, hunk.line - 1); // the inset is inserted AFTER this 0-based line
+            const html = removedInsetHtml(hunk.change.removedTexts);
+            try {
+                const inset = create(editor, line, Math.max(1, hunk.removedLines), { enableScripts: false });
+                if (!inset) continue;
+                if (inset.webview) inset.webview.html = html;
+                created.push(inset);
+                linesCovered.add(hunk.line);
+            } catch (error) {
+                console.error('[dsh-tui-vscode] review inset failed:', error);
+            }
+        }
+        if (created.length === 0) return new Set();
+        this.insets.set(key, { created, lines: linesCovered });
+        this.insetSignatures.set(key, signature);
+        return linesCovered;
+    }
+
     /**
      * Draw the plan: two green weights for live lines, darker green for the
      * changed elements, and one block marker where lines were deleted.
@@ -681,8 +783,10 @@ class EditReview {
             : null;
         if (!plan) {
             this.clearEditorDecorations(editor);
+            this.clearInsets(editor);
             return;
         }
+        const insetLines = this.renderRemovedInsets(editor, entry, plan);
         const maxLine = Math.max(editor.document.lineCount - 1, 0);
         const clamp = line => Math.max(0, Math.min(line, maxLine));
         const added = [];
@@ -693,6 +797,7 @@ class EditReview {
         for (const planned of plan.hunks) {
             const hover = this.hunkHover(entry, planned.change);
             if (planned.kind === 'removed') {
+                if (insetLines.has(planned.line)) continue;
                 const line = clamp(planned.line);
                 // Zero-width: a file can end in an empty line, and a column
                 // beyond the line length would drop the whole batch.
@@ -1268,6 +1373,8 @@ class EditReview {
             flushState: () => this.flushState(),
             storeFile: () => this.storeFile(),
             trackTerminal: terminal => this.trackTerminal(terminal),
+            insetCount: () => [...this.insets.values()].reduce((total, record) => total + record.created.length, 0),
+            insetApiPresent: () => this.insetApi() !== null,
             prepareSession: () => this.prepareSession(),
             gotoHunk: (path, direction) => this.gotoHunk(path, direction),
             revealFirstHunk: path => this.revealFirstHunk(path),
